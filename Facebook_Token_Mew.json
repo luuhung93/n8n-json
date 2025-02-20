@@ -1,0 +1,347 @@
+{
+  "name": "Facebook Token Mew",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "facebook-login",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        20,
+        220
+      ],
+      "id": "47d8b3be-9f73-4286-b395-a12f1bf23b81",
+      "name": "Webhook",
+      "webhookId": "9e37ff8f-66fd-417b-97af-570e52622d7b"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ce391d94-03af-42d1-ae73-91bdb2e93c00",
+              "leftValue": "={{ $('Webhook').first().json.query.code }}",
+              "rightValue": "login",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        220
+      ],
+      "id": "2f23c6e1-d205-4a08-a83e-b7ad62a5b411",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    \"fb_redirect_uri\": \"https://localhost:5678/webhook/facebook-login\",\n    \"app_id\": 12345678900000,\n    \"app_secret\": \"aaabbbcccceedb6f9c91993c871\",\n  }\n]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        340,
+        220
+      ],
+      "id": "24048c5b-f10f-465d-9fc8-ce41e4bb91e1",
+      "name": "Config"
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v21.0/oauth/access_token",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "client_id",
+              "value": "={{ $('Config').first().json.app_id }}"
+            },
+            {
+              "name": "redirect_uri",
+              "value": "={{ $('Config').first().json.fb_redirect_uri }}"
+            },
+            {
+              "name": "client_secret",
+              "value": "={{ $('Config').first().json.app_secret }}"
+            },
+            {
+              "name": "code",
+              "value": "={{ $('Webhook').first().json.query.code }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        60
+      ],
+      "id": "a450b904-7031-4eaa-b834-482a2bc091a6",
+      "name": "Short-Lived Token",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v21.0/oauth/access_token",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "fb_exchange_token"
+            },
+            {
+              "name": "client_id",
+              "value": "={{ $('Config').first().json.app_id }}"
+            },
+            {
+              "name": "client_secret",
+              "value": "={{ $('Config').first().json.app_secret }}"
+            },
+            {
+              "name": "fb_exchange_token",
+              "value": "={{ $('Short-Lived Token').first().json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        40
+      ],
+      "id": "ad29ea18-383e-425b-ad99-3e5325607600",
+      "name": "Long-Lived Token",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "content": "### Instructions to Get a 2-Month Facebook Token\nRun n8n with tunnel model - Or user: Ngrok, Cloudflare Tunnel\n\n1. **Activate the App**:\n   - Launch the app. In the top-right corner near the **Save** button, you will see a status button labeled **Inactive**.\n   - Switch this button to **Active** (it will turn green) to activate the app.\n\n2. **Access the Webhook URL**:\n   - Visit the following URL (fb_redirect_uri):  \n      https://localhost:5678/webhook/facebook-login?type=login\n\n3. **Follow the Steps**:\n   - Complete the on-screen instructions to finish the process.\n   - Once done, you will receive a **Facebook Token** valid for **2 months (60 days)**.\n\n\n### Instructions to Check Token Status and Get Page Token\n1. **Check Token Status**:\n   - Go to [Facebook Access Token Debugger](https://developers.facebook.com/tools/debug/accesstoken/).\n   - Paste your **User Token** into the debugger to view details such as expiration date, permissions, and token status.\n\n2. **Get Page Token for Posting**:\n   - A **User Token** only grants access to personal information. To post on a Page, you need a **Page Token**.\n   - Send a GET request to the following endpoint (replace `{user-access-token}` with your User Token):\n     ```\n     GET https://graph.facebook.com/v21.0/me/accounts?access_token={user-access-token}\n     ```\n   - The response will include a list of Pages you manage along with their corresponding **Page Tokens**.\n\n3. **Use the Page Token**:\n   - Use the **Page Token** to perform actions such as posting, managing comments, or other tasks on the Page.\n\n**Note**:\n- Ensure the User Token has the necessary permissions like `pages_manage_posts`, `pages_read_engagement`, etc., to retrieve the Page Token.\n- The Page Token will have the same expiration as the User Token (approximately 60 days) and can be renewed.\n## By luuhung93\n",
+        "height": 900,
+        "width": 920
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        20,
+        -860
+      ],
+      "id": "3ed170b6-2d4d-4fab-a842-6188ef24c311",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $('Config').first().json;\n\n\nconst generateRandomState = () => {\n\treturn Math.random().toString(36).substring(2, 15) +\n\t\tMath.random().toString(36).substring(2, 15);\n}\nconst state = generateRandomState();\n\nconst correctScopes = [\n        'publish_video',\n\t\t'pages_show_list',\n\t\t'business_management',\n        'pages_read_engagement',\n        'pages_read_user_content',\n        'pages_manage_metadata',\n        'pages_manage_posts',\n        'pages_manage_engagement',\n\t];\n\nconst authUrl = `https://www.facebook.com/v22.0/dialog/oauth?client_id=${config.app_id}&redirect_uri=${config.fb_redirect_uri}&scope=${correctScopes.join(',')}&response_type=code&state=${state}`;\n\nreturn [{\n  authUrl\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        420
+      ],
+      "id": "46c3c067-db76-4393-b6aa-adb696cfe428",
+      "name": "Redirect URL"
+    },
+    {
+      "parameters": {
+        "respondWith": "redirect",
+        "redirectURL": "={{ $json.authUrl }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1940,
+        420
+      ],
+      "id": "6000e6b4-17dc-46b7-b391-3f85a6ca3fa6",
+      "name": "Redirect"
+    },
+    {
+      "parameters": {
+        "content": "Edit:\n - fb_redirect_uri\n - app_id\n - app_secret\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nGo to the [Facebook App](https://developers.facebook.com/apps/).\n    - Select **Facebook Login** from the left-hand menu.\n    - Click on **Settings**.\n    - In the **Valid OAuth Redirect URIs** section, add the URL (fb_redirect_uri): `https://localhost:5678/webhook/facebook-login`",
+        "height": 480,
+        "width": 420
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        180,
+        80
+      ],
+      "id": "47d7cfce-53a3-4515-aa0f-b95cd847d604",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n### Guide to Editing `correctScopes`\n\n1. **Add a Permission**:\n   - Add the permission to the `correctScopes` array. For example:\n     ```javascript\n     const correctScopes = [\n       'pages_manage_posts', // Existing permission\n       'pages_messaging',    // New permission added\n     ];\n     ```\n\n2. **Edit a Permission**:\n   - Replace a permission in the `correctScopes` array. For example:\n     ```javascript\n     const correctScopes = [\n       'pages_manage_posts', // Existing permission\n       'pages_messaging',    // New permission replacing the old one\n     ];\n     ```\n\n3. **Remove a Permission**:\n   - Remove a permission from the `correctScopes` array. For example:\n     ```javascript\n     const correctScopes = [\n       'pages_manage_posts', // Keep this permission\n       // 'pages_messaging',  // Remove this permission\n     ];\n     ```\n\n4. **View Available Permissions**:\n   - Refer to the full list of permissions at [Facebook Permissions](https://developers.facebook.com/docs/permissions/).\n\nSimply edit the `correctScopes` array; no need to worry about other parts.\n",
+        "height": 760,
+        "width": 640
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        800,
+        400
+      ],
+      "id": "e120c9d7-ae83-4a88-a674-b6eb8cb53b03",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.access_token }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1900,
+        40
+      ],
+      "id": "f0cad34c-bc5e-4c34-b5cd-04cd3471573c",
+      "name": "Token"
+    },
+    {
+      "parameters": {
+        "content": "By default, the token will be displayed on the screen. However, you can add a `node` to save the token into your database.",
+        "width": 260
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        -20
+      ],
+      "id": "85a0c509-7bec-499e-9d75-051a0941dbcb",
+      "name": "Sticky Note3"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Short-Lived Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Redirect URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Short-Lived Token": {
+      "main": [
+        [
+          {
+            "node": "Long-Lived Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Redirect URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Long-Lived Token": {
+      "main": [
+        [
+          {
+            "node": "Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redirect URL": {
+      "main": [
+        [
+          {
+            "node": "Redirect",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redirect": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "2fe0f3be-f11e-4a9c-adb3-1ebb17451fb1",
+  "meta": {
+    "instanceId": "2c69a61055797162319204105e5a124e409f0c7fbfaba08ee106324374f4ae73"
+  },
+  "id": "MVhWWLZv7PhhLSq2",
+  "tags": []
+}
